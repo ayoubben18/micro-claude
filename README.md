@@ -12,6 +12,34 @@ Micro-Claude transforms vague feature requests into well-structured implementati
 
 The model can loop and pick any task it sees fit based on context and dependencies.
 
+## Why Detailed Plans Matter
+
+The quality of your implementation depends entirely on the quality of your plan. During `/mc:interrogate`:
+
+- **Be thorough** - Answer every question with specific details
+- **Include examples** - Show expected inputs, outputs, edge cases
+- **Define data models precisely** - Field names, types, constraints
+- **Specify integrations** - APIs, services, existing code patterns
+
+A detailed plan means fewer mistakes, less back-and-forth, and better results.
+
+## Ralph Loop Integration
+
+Micro-Claude works seamlessly with the [Ralph Loop plugin](https://github.com/ayoubben18/ralph-loop). After creating your plan and exploding tasks:
+
+```bash
+# 1. Create detailed plan
+/mc:interrogate
+
+# 2. Explode into tasks
+/mc:explode
+
+# 3. Start Ralph Loop for autonomous implementation
+/ralph-loop
+```
+
+Ralph will continuously loop through tasks, implementing them one by one with full context from your detailed plan. The more detailed your `plan.md`, the better Ralph performs - it uses the line references to read exactly what it needs for each task.
+
 ## Installation
 
 ```bash
