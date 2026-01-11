@@ -1,0 +1,20 @@
+# Source files not needed in npm package
+.github/
+.micro-claude/
+PLAN.md
+
+# Config files
+.gitignore
+.releaserc.json
+
+# Development files
+*.log
+node_modules/
+.DS_Store
+
+# Keep only essential files
+# cli.js
+# .claude/
+# README.md
+# LICENSE
+# package.json
