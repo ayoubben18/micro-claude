@@ -84,6 +84,7 @@ async function install() {
       log('   • /mc:mini-explode - High-level task explosion', COLORS.white);
       log('   • /mc:explode - Fine-grained task explosion', COLORS.white);
       log('   • /mc:implement - Task implementation loop', COLORS.white);
+      log('   • /mc:mutate - Extend & modify plans', COLORS.white);
     }
 
     // Create .micro-claude directory for task storage
@@ -100,6 +101,7 @@ async function install() {
     log('2. /mc:mini-explode → Explodes into high-level tasks', COLORS.white);
     log('   /mc:explode      → Explodes into atomic tasks', COLORS.white);
     log('3. /mc:implement    → Implements tasks with notes', COLORS.white);
+    log('4. /mc:mutate       → Extend or modify the plan', COLORS.white);
 
     log('\n📁 Files created per task:', COLORS.cyan);
     log('   .micro-claude/[task-name]/', COLORS.white);
@@ -134,6 +136,7 @@ if (!command || command === 'install') {
   log('  /mc:mini-explode  Explode plan into high-level tasks');
   log('  /mc:explode       Explode plan into atomic tasks');
   log('  /mc:implement     Implement tasks with notes tracking');
+  log('  /mc:mutate        Extend or modify existing plans');
   log('\nMore info: https://github.com/ayoubben18/micro-claude', COLORS.blue);
 } else if (command === '--version' || command === '-v') {
   const packageJson = require('./package.json');
