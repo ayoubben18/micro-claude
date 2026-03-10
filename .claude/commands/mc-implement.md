@@ -16,6 +16,9 @@ Otherwise, list available tasks in `.micro-claude/` and ask which one to work on
 1. Read `.micro-claude/[task-name]/prd.json` to get task list
 2. Read `.micro-claude/[task-name]/notes.md` for previous implementation context
 3. Read `.micro-claude/[task-name]/plan.md` for full specifications
+4. Read `recursive.enabled`, `recursive.condition`, and `recursive.recurseOn` from `prd.json`
+
+If `recursive.enabled` is `true`, both `recursive.condition` and `recursive.recurseOn` must be present. If either is missing, stop and surface an error instead of proceeding.
 
 ## Step 3: Select Task to Implement
 
@@ -64,12 +67,18 @@ Show progress:
 Progress: [X]/[Total] tasks completed
 ```
 
-Ask user:
+If `recursive.enabled` is `false`, ask the user:
 - Continue to next task?
 - Pick a specific task?
 - Exit implementation?
 
-If continuing, go back to Step 3.
+If `recursive.enabled` is `true`, do a recursive review before offering to exit:
+1. Re-read `recursive.condition` and `recursive.recurseOn`
+2. Re-assess the codebase, plan, notes, and PRD against that recursive goal
+3. If more work is needed, add follow-up tasks to `prd.json` and continue looping
+4. If the recursive condition is satisfied, set `recursive.enabled` to `false`, record that decision in `notes.md`, then exit or continue as appropriate
+
+Never exit with `recursive.enabled: true` while the recursive condition is still unmet.
 
 ## Notes File Format
 

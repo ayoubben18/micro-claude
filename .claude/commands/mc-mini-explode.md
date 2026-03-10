@@ -24,6 +24,11 @@ Create `prd.json` with this structure:
   "project": "[Task Name]",
   "document": "plan.md",
   "granularity": "mini",
+  "recursive": {
+    "enabled": false,
+    "condition": "",
+    "recurseOn": ""
+  },
   "tasks": [
     {
       "id": 1,
@@ -54,6 +59,14 @@ Create `prd.json` with this structure:
 - **to**: Ending line number in plan.md
 - **done**: Boolean, starts as false
 
+## Recursive Properties
+
+- **recursive.enabled**: Boolean flag for recursive execution mode
+- **recursive.condition**: Text describing the stop condition for recursive mode
+- **recursive.recurseOn**: Text describing what the agent should recursively revisit
+
+When recursive mode is enabled, `condition` and `recurseOn` must both be non-empty strings. If either is missing, stop and ask the user instead of generating an invalid `prd.json`.
+
 ## Step 4: Save and Report
 
 1. Write `prd.json` to `.micro-claude/[task-name]/prd.json`
@@ -66,3 +79,4 @@ Create `prd.json` with this structure:
 - Each task should map to a coherent section of the plan
 - Line ranges should not overlap
 - Order tasks logically (database before API, backend before frontend)
+- Default `recursive.enabled` to `false` unless the user explicitly wants recursive execution

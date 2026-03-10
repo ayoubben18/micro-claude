@@ -166,6 +166,11 @@ Extends, modifies, or fixes an existing plan and PRD through interactive dialogu
   "project": "feature-name",
   "document": "plan.md",
   "granularity": "full",
+  "recursive": {
+    "enabled": false,
+    "condition": "",
+    "recurseOn": ""
+  },
   "tasks": [
     {
       "id": 1,
@@ -178,6 +183,23 @@ Extends, modifies, or fixes an existing plan and PRD through interactive dialogu
   ]
 }
 ```
+
+### Recursive Mode
+
+`prd.json` can optionally enable recursive execution:
+
+```json
+"recursive": {
+  "enabled": true,
+  "condition": "Keep iterating until all auth flows are implemented and verified end-to-end",
+  "recurseOn": "Authentication flows, missing edge cases, and any follow-up tasks discovered during implementation"
+}
+```
+
+- When `recursive.enabled` is `false`, implementation exits once the planned tasks are done.
+- When `recursive.enabled` is `true`, both `condition` and `recurseOn` are required.
+- If recursive mode is enabled without one of those fields, Micro-Claude treats it as an error.
+- In recursive mode, the implementation loop keeps revisiting the scope in `recurseOn` until the stop condition is satisfied.
 
 ### notes.md Format
 

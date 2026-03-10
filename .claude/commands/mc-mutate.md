@@ -22,6 +22,7 @@ Display a brief summary:
 - Plan sections overview
 - Task count: X total, Y completed, Z pending
 - Last implemented task (from notes)
+- Recursive mode status: enabled/disabled, condition, recurseOn
 
 ## Step 3: Ask What to Mutate
 
@@ -33,6 +34,7 @@ Present mutation options to the user:
 3. **Remove something** - Delete a requirement that's no longer needed
 4. **Fix a mistake** - Correct an error in the plan
 5. **Clarify something** - Add more detail to an ambiguous section
+6. **Update recursive behavior** - Change whether execution should recurse, on what, and until which condition
 
 Wait for the user's choice.
 
@@ -110,6 +112,7 @@ If approved:
    - Update `from`/`to` line numbers if content shifted
    - Mark removed requirements' tasks as appropriate
    - Keep `done` status for existing tasks
+   - Validate `recursive`: if `enabled` is `true`, require both `condition` and `recurseOn`
 
 3. **Update notes.md**:
    - Add a mutation log entry:

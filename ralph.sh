@@ -8,6 +8,9 @@
 #   ./ralph.sh user-auth                # Run until complete (default 50 iterations)
 #   ./ralph.sh user-auth 20             # Run max 20 iterations
 #
+# If `prd.json` enables recursive mode, Ralph keeps looping until the recursive
+# condition is satisfied and recursive mode is turned off.
+#
 # This script implements the Ralph Wiggum pattern: each iteration runs with
 # fresh context, avoiding the context accumulation that degrades output quality.
 #
@@ -171,14 +174,66 @@ get_done_count() {
     jq '[.tasks[] | select(.done == true)] | length' "$task_dir/prd.json" 2>/dev/null || echo 0
 }
 
+# Get recursive enabled flag
+get_recursive_enabled() {
+    local task_dir="$MICRO_CLAUDE_DIR/$TASK_NAME"
+    jq -r '.recursive.enabled // false' "$task_dir/prd.json" 2>/dev/null || echo false
+}
+
+# Get recursive condition text
+get_recursive_condition() {
+    local task_dir="$MICRO_CLAUDE_DIR/$TASK_NAME"
+    jq -r '.recursive.condition // ""' "$task_dir/prd.json" 2>/dev/null || echo ""
+}
+
+# Get recursive target text
+get_recursive_target() {
+    local task_dir="$MICRO_CLAUDE_DIR/$TASK_NAME"
+    jq -r '.recursive.recurseOn // ""' "$task_dir/prd.json" 2>/dev/null || echo ""
+}
+
+# Validate prd.json structure, including recursive mode rules
+validate_prd() {
+    local task_dir="$MICRO_CLAUDE_DIR/$TASK_NAME"
+    local prd_file="$task_dir/prd.json"
+
+    if ! jq empty "$prd_file" >/dev/null 2>&1; then
+        log "Invalid JSON in $prd_file" "$RED"
+        exit 1
+    fi
+
+    if ! jq -e 'has("tasks") and (.tasks | type == "array")' "$prd_file" >/dev/null 2>&1; then
+        log "Invalid prd.json: missing tasks array" "$RED"
+        exit 1
+    fi
+
+    local recursive_enabled=$(get_recursive_enabled)
+    if [ "$recursive_enabled" = "true" ]; then
+        if ! jq -e '
+            .recursive
+            and (.recursive | type == "object")
+            and (.recursive.condition | type == "string")
+            and (.recursive.recurseOn | type == "string")
+            and (.recursive.condition | gsub("^\\s+|\\s+$"; "") | length > 0)
+            and (.recursive.recurseOn | gsub("^\\s+|\\s+$"; "") | length > 0)
+        ' "$prd_file" >/dev/null 2>&1; then
+            log "Invalid prd.json: recursive.enabled=true requires non-empty recursive.condition and recursive.recurseOn" "$RED"
+            exit 1
+        fi
+    fi
+}
+
 # Generate the prompt for this iteration
 generate_prompt() {
     local task_dir="$MICRO_CLAUDE_DIR/$TASK_NAME"
+    local recursive_enabled=$(get_recursive_enabled)
+    local recursive_condition=$(get_recursive_condition)
+    local recursive_target=$(get_recursive_target)
 
     cat <<EOF
 # Build Iteration for: $TASK_NAME
 
-You are implementing tasks from a PRD in an autonomous loop. Each iteration you complete tasks, then exit.
+You are implementing tasks from a PRD in an autonomous loop. Each iteration you complete tasks, update state, and then exit.
 
 ## Context Files
 - Task directory: $task_dir/
@@ -192,6 +247,7 @@ You are implementing tasks from a PRD in an autonomous loop. Each iteration you 
 1. Read \`$task_dir/prd.json\` to see all tasks
 2. Read \`$task_dir/notes.md\` to understand what's been done
 3. Find ALL tasks where \`"done": false\`
+4. Read the recursive configuration in \`$task_dir/prd.json\`
 
 ### Step 2: Assess and Batch Tasks
 Review pending tasks and decide how many to tackle this iteration:
@@ -238,8 +294,19 @@ For EACH completed task:
 2. Update \`$task_dir/prd.json\`:
    - Set this task's \`"done": true\`
 
-### Step 6: Exit
-After completing your task(s), exit. The loop will restart with fresh context.
+### Step 6: Recursive Review
+- Recursive mode enabled: $recursive_enabled
+- Recursive condition: $recursive_condition
+- Recurse on: $recursive_target
+
+If recursive mode is enabled:
+1. Re-assess the codebase, plan, notes, and PRD against the recursive target before exiting
+2. If more work is needed, add follow-up tasks to \`$task_dir/prd.json\` with new sequential IDs and keep \`recursive.enabled\` as \`true\`
+3. If the recursive condition is satisfied, set \`recursive.enabled\` to \`false\` and record the decision in \`$task_dir/notes.md\`
+4. Never leave the PRD in a state where there are zero pending tasks and \`recursive.enabled\` is still \`true\` unless you intentionally need another recursive review iteration
+
+### Step 7: Exit
+After completing your work for this iteration, exit. The loop will restart with fresh context if more work remains.
 
 ## Rules
 - Batch simple tasks, isolate complex ones
@@ -248,6 +315,7 @@ After completing your task(s), exit. The loop will restart with fresh context.
 - If blocked, note the blocker in notes.md and still mark done
 - Keep notes concise but informative
 - Don't exceed ~5 tasks per iteration even if they're simple
+- If \`recursive.enabled\` is \`true\`, do not consider the task finished until the recursive condition has been satisfied
 
 ## Current Iteration: $((ITERATION + 1))
 EOF
@@ -256,9 +324,15 @@ EOF
 # Run one iteration
 run_iteration() {
     local prompt=$(generate_prompt)
+    local recursive_enabled=$(get_recursive_enabled)
+    local status_suffix=""
+
+    if [ "$recursive_enabled" = "true" ]; then
+        status_suffix=" | Recursive: on"
+    fi
 
     log "────────────────────────────────────────────────────────────────" "$BLUE"
-    log "Iteration $((ITERATION + 1)) | Task: $TASK_NAME | Pending: $(get_pending_count)/$(get_total_count)" "$BLUE"
+    log "Iteration $((ITERATION + 1)) | Task: $TASK_NAME | Pending: $(get_pending_count)/$(get_total_count)$status_suffix" "$BLUE"
     log "────────────────────────────────────────────────────────────────" "$BLUE"
     echo ""
 
@@ -290,28 +364,42 @@ run_loop() {
         exit 1
     fi
 
+    validate_prd
+
     # Check if already complete
     local pending=$(get_pending_count)
-    if [ "$pending" -eq 0 ]; then
+    local recursive_enabled=$(get_recursive_enabled)
+    if [ "$pending" -eq 0 ] && [ "$recursive_enabled" != "true" ]; then
         log "All tasks already complete for '$TASK_NAME'!" "$GREEN"
         exit 0
     fi
 
     log "Starting Ralph loop for: $TASK_NAME" "$CYAN"
-    log "Pending tasks: $pending | Max iterations: $MAX_ITERATIONS" "$CYAN"
+    log "Pending tasks: $pending | Max iterations: $MAX_ITERATIONS | Recursive: $recursive_enabled" "$CYAN"
+    if [ "$recursive_enabled" = "true" ]; then
+        log "Recursive condition: $(get_recursive_condition)" "$CYAN"
+        log "Recursive target: $(get_recursive_target)" "$CYAN"
+    fi
     echo ""
 
     # Main loop
     while [ $ITERATION -lt $MAX_ITERATIONS ]; do
+        validate_prd
+
         # Check pending tasks
         pending=$(get_pending_count)
+        recursive_enabled=$(get_recursive_enabled)
 
-        if [ "$pending" -eq 0 ]; then
+        if [ "$pending" -eq 0 ] && [ "$recursive_enabled" != "true" ]; then
             echo ""
             log "════════════════════════════════════════════════════════════════" "$GREEN"
             log "  All tasks complete! Finished in $ITERATION iterations." "$GREEN"
             log "════════════════════════════════════════════════════════════════" "$GREEN"
             exit 0
+        fi
+
+        if [ "$pending" -eq 0 ] && [ "$recursive_enabled" = "true" ]; then
+            log "No pending tasks, but recursive mode is still enabled. Running recursive review..." "$YELLOW"
         fi
 
         # Run iteration

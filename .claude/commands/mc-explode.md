@@ -24,6 +24,11 @@ Create `prd.json` with this structure:
   "project": "[Task Name]",
   "document": "plan.md",
   "granularity": "full",
+  "recursive": {
+    "enabled": false,
+    "condition": "",
+    "recurseOn": ""
+  },
   "tasks": [
     {
       "id": 1,
@@ -62,6 +67,24 @@ Create `prd.json` with this structure:
 - **to**: Ending line number in plan.md
 - **done**: Boolean, starts as false
 
+## Recursive Properties
+
+- **recursive.enabled**: Boolean flag for recursive execution mode
+- **recursive.condition**: Text describing the stop condition that must be satisfied before recursive mode can end
+- **recursive.recurseOn**: Text describing what the agent should keep re-evaluating recursively
+
+If recursive mode is not needed, set:
+
+```json
+"recursive": {
+  "enabled": false,
+  "condition": "",
+  "recurseOn": ""
+}
+```
+
+If recursive mode is enabled, both `condition` and `recurseOn` are required. Do not write an invalid `prd.json`; stop and ask the user for the missing value instead.
+
 ## Step 4: Save and Report
 
 1. Write `prd.json` to `.micro-claude/[task-name]/prd.json`
@@ -76,3 +99,4 @@ Create `prd.json` with this structure:
 - Line ranges can be small (even 3-5 lines for a specific field)
 - Order tasks by implementation dependency (schema before types, types before services)
 - Be granular: "Create header section schema" not "Create all sections"
+- If the user wants recursive execution, encode it in `recursive`; otherwise keep it disabled by default
