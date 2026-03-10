@@ -1,6 +1,6 @@
 {
   "name": "micro-claude",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A structured AI-driven development method that interrogates, plans, and implements features through task decomposition",
   "keywords": [
     "claude-code",

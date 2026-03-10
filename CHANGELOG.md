@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/ayoubben18/micro-claude/compare/v1.4.0...v1.4.1) (2026-03-10)
+
+
+### Bug Fixes
+
+* add recursive PRD validation and loop behavior ([8a44a1f](https://github.com/ayoubben18/micro-claude/commit/8a44a1f7f92f84132a698488b3cfb83ecc8b3eae))
+
 # [1.4.0](https://github.com/ayoubben18/micro-claude/compare/v1.3.0...v1.4.0) (2026-01-16)
 
 
